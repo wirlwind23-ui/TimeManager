@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>自律成长系统-数据保障版</title>
+    <title>自律成长系统-单列稳定版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
@@ -12,107 +12,109 @@
         .nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); z-index: 2000; }
         .nav-item { flex: 1; text-align: center; padding: 15px 0; font-size: 12px; color: #94A3B8; border:none; background:none; cursor: pointer; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
-        .page { display: none; padding: 10px; max-width: 1000px; margin: 0 auto; animation: fadeIn 0.2s; }
+        .page { display: none; padding: 10px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.2s; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        .check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        @media (max-width: 600px) { .check-grid { grid-template-columns: 1fr; } }
+        /* 彻底强制单列布局 */
+        .check-grid { display: block; width: 100%; }
 
-        .cat-container { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); margin-bottom: 10px; }
-        .task-scroll-area { max-height: 550px; overflow-y: auto; }
-        .group-header { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; cursor: pointer; font-weight: 900; font-size: 14px; border-bottom: 1px solid #f1f5f9; margin-bottom: 8px; position: sticky; top: 0; background: white; z-index: 10; }
-        .item-row { display: flex; flex-direction: column; padding: 10px; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(0,0,0,0.02); }
-        .item-main { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
-        .name-input { border: none; background: transparent; font-size: 16px; font-weight: 900; width: 100%; color: #1E293B; outline: none; margin-bottom: 2px; }
-        .score-row { display: flex; align-items: center; gap: 8px; font-size: 8px; color: #94A3B8; }
-        .score-box { display: flex; align-items: center; gap: 2px; }
-        .step-btn { border: 1px solid #E2E8F0; background: white; border-radius: 3px; width: 16px; height: 16px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748B; font-weight: bold; }
-        .score-input { width: 22px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); text-align: center; font-size: 9px; font-weight: bold; color: #475569; padding: 0; margin-left: 1px; border-radius: 2px; }
-        .note-input { width: 100%; border: none; background: rgba(255,255,255,0.3); border-radius: 4px; padding: 4px; margin-top: 6px; font-size: 10px; box-sizing: border-box; border: 1px dashed rgba(0,0,0,0.08); }
-        .switch { position: relative; width: 32px; height: 16px; flex-shrink: 0; }
+        .cat-container { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); margin-bottom: 12px; }
+        .task-scroll-area { display: block; } 
+        .group-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; cursor: pointer; font-weight: 900; font-size: 15px; border-bottom: 1px solid #f1f5f9; margin-bottom: 10px; position: sticky; top: 0; background: white; z-index: 10; }
+        .item-row { display: flex; flex-direction: column; padding: 12px; border-radius: 10px; margin-bottom: 8px; border: 1px solid rgba(0,0,0,0.02); }
+        .item-main { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .name-input { border: none; background: transparent; font-size: 16px; font-weight: 900; width: 100%; color: #1E293B; outline: none; margin-bottom: 4px; }
+        .score-row { display: flex; align-items: center; gap: 10px; font-size: 11px; color: #64748B; }
+        .score-box { display: flex; align-items: center; gap: 4px; }
+        .step-btn { border: 1px solid #E2E8F0; background: white; border-radius: 4px; width: 22px; height: 22px; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748B; font-weight: bold; }
+        .score-input { width: 30px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.8); text-align: center; font-size: 12px; font-weight: bold; color: #1E293B; padding: 2px 0; border-radius: 4px; }
+        .note-input { width: 100%; border: none; background: rgba(255,255,255,0.5); border-radius: 6px; padding: 6px; margin-top: 8px; font-size: 12px; box-sizing: border-box; border: 1px dashed rgba(0,0,0,0.1); }
+        
+        .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top:0; left:0; right:0; bottom:0; background:#E2E8F0; transition:.3s; border-radius:16px; }
-        .slider:before { position: absolute; content:""; height:12px; width:12px; left:2px; bottom:2px; background:white; transition:.3s; border-radius:50%; }
+        .slider { position: absolute; cursor: pointer; top:0; left:0; right:0; bottom:0; background:#E2E8F0; transition:.3s; border-radius:24px; }
+        .slider:before { position: absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:white; transition:.3s; border-radius:50%; }
         input:checked + .slider { background: #10B981; }
-        input:checked + .slider:before { transform: translateX(16px); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        
         .card { background: white; border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #E2E8F0; border-radius: 6px; font-size: 12px; box-sizing: border-box;}
-        .btn { border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        th { background: #F8FAFC; padding: 8px; text-align: left; }
-        td { padding: 8px; border-bottom: 1px solid #F1F5F9; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 14px; box-sizing: border-box;}
+        .btn { border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #F8FAFC; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #F1F5F9; }
         .gain { color: #10B981; font-weight: bold; }
         .loss { color: #EF4444; font-weight: bold; }
-        .mini-btn { padding: 4px 8px; border-radius: 4px; font-size: 10px; background: #64748B; color: white; border: none; cursor: pointer; }
-        .color-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .mini-btn { padding: 6px 10px; border-radius: 6px; font-size: 11px; background: #64748B; color: white; border: none; cursor: pointer; }
+        .color-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
     </style>
 </head>
 <body>
 
 <div id="page-check" class="page active">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 10px; background: white; border-radius: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 15px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
         <div>
-            <div id="disp-date" style="color: #1E293B; font-weight: bold; font-size: 14px;"></div>
-            <div style="font-size:10px; color:#94A3B8; margin-top:2px;">
+            <div id="disp-date" style="color: #1E293B; font-weight: bold; font-size: 16px;"></div>
+            <div style="font-size:12px; color:#94A3B8; margin-top:4px;">
                 得: <span id="stat-gain" class="gain">0</span> 
                 支: <span id="stat-loss" class="loss">0</span>
             </div>
         </div>
         <div style="text-align: right;">
-            <span style="font-size:10px; color:#94A3B8">可用余额</span><br>
-            <span id="day-total" style="font-size:24px; font-weight:900; color:var(--primary)">0</span>
+            <span style="font-size:11px; color:#94A3B8">可用余额</span><br>
+            <span id="day-total" style="font-size:26px; font-weight:900; color:var(--primary)">0</span>
         </div>
     </div>
     <div id="check-list" class="check-grid"></div>
 </div>
 
 <div id="page-history" class="page">
-    <h2 style="font-size: 16px;">统计明细</h2>
+    <h2 style="font-size: 18px;">统计明细</h2>
     <div class="card">
-        <div style="font-size: 12px; font-weight: 800; margin-bottom: 10px;">💾 数据管理</div>
-        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+        <div style="font-size: 14px; font-weight: 800; margin-bottom: 10px;">💾 数据管理</div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button class="mini-btn" onclick="exportData(7)">导出最近一周</button>
             <button class="mini-btn" onclick="exportData(30)">导出最近一月</button>
             <button class="mini-btn" style="background:#10B981" onclick="backupDB()">全量备份/导入</button>
         </div>
     </div>
-    <div class="card" style="max-width: 600px; margin: auto;"><canvas id="historyChart" height="150"></canvas></div>
-    <div class="card" style="padding: 0; overflow: hidden; max-width: 600px; margin: 10px auto;">
+    <div class="card"><canvas id="historyChart" height="180"></canvas></div>
+    <div class="card" style="padding: 0; overflow: hidden;">
         <table><thead><tr><th>时间</th><th>项目</th><th>变动</th><th>备注</th></tr></thead><tbody id="excel-body"></tbody></table>
     </div>
 </div>
 
 <div id="page-shop" class="page">
-    <div style="background: linear-gradient(135deg, #4F46E5, #9333EA); color: white; padding: 25px; border-radius: 18px; text-align: center; margin-bottom: 15px; max-width: 500px; margin: auto;">
-        <div style="font-size: 42px; font-weight: 900;" id="bal-display">0</div>
-        <div style="opacity: 0.9; font-size: 11px; margin-top:5px; font-weight:bold">账户积分可用余额</div>
+    <div style="background: linear-gradient(135deg, #4F46E5, #9333EA); color: white; padding: 30px; border-radius: 20px; text-align: center; margin-bottom: 15px;">
+        <div style="font-size: 48px; font-weight: 900;" id="bal-display">0</div>
+        <div style="opacity: 0.9; font-size: 13px; margin-top:5px; font-weight:bold">账户积分可用余额</div>
     </div>
-    <div id="shop-sort-container" style="max-width: 600px; margin: auto;"></div>
+    <div id="shop-sort-container"></div>
 </div>
 
 <div id="page-admin" class="page">
-    <h2 style="font-size: 16px;">管理中心 (按住 ☰ 或 ⠿ 排序)</h2>
-    <div id="admin-sort-container" style="max-width: 600px; margin: auto;"></div>
+    <h2 style="font-size: 18px;">管理中心 (按住 ☰ 或 ⠿ 排序)</h2>
+    <div id="admin-sort-container"></div>
     <div class="card">
-        <div style="font-size:13px; font-weight:800; margin-bottom:8px">📘 增加新任务</div>
+        <div style="font-size:14px; font-weight:800; margin-bottom:10px">📘 增加新任务</div>
         <select id="add-item-cat"></select>
         <input type="text" id="add-item-name" placeholder="名称">
         <input type="number" id="add-item-base" placeholder="分值">
         <button class="btn" style="background: var(--primary); width:100%" onclick="op('item')">确定添加</button>
     </div>
     <div class="card">
-        <div style="font-size:13px; font-weight:800; margin-bottom:8px">🎁 增加新奖品</div>
+        <div style="font-size:14px; font-weight:800; margin-bottom:10px">🎁 增加新奖品</div>
         <input type="text" id="add-reward-name" placeholder="名称">
         <input type="number" id="add-reward-price" placeholder="分值">
         <button class="btn" style="background: #ED8936; width:100%" onclick="op('reward')">确定添加</button>
     </div>
     <div class="card">
-        <div style="font-size:13px; font-weight:800; margin-bottom:8px">📦 增加新分类</div>
+        <div style="font-size:14px; font-weight:800; margin-bottom:10px">📦 增加新分类</div>
         <input type="text" id="add-cat-name" placeholder="分类名 (如: 🏃 运动)">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px">
-            <span style="font-size:12px">分类颜色:</span>
-            <input type="color" id="add-cat-color" value="#6366F1" style="height:30px; width:60px; padding:2px; border:1px solid #ddd">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px">
+            <span style="font-size:14px">分类颜色:</span>
+            <input type="color" id="add-cat-color" value="#6366F1" style="height:35px; width:60px; padding:2px; border:1px solid #ddd; border-radius:4px">
         </div>
         <button class="btn" style="background: #10B981; width:100%" onclick="op('cat')">创建分类</button>
     </div>
@@ -126,6 +128,7 @@
 </nav>
 
 <script>
+// 所有 37 个任务逻辑完全保留
 const raw37 = [{id:1, name:"Finish homework", base:5, g:"g1"}, {id:2, name:"Math lesson", base:5, g:"g1"}, {id:3, name:"English lesson", base:5, g:"g1"}, {id:4, name:"English words 5-10", base:3, g:"g1"}, {id:5, name:"Math exercise", base:4, g:"g1"}, {id:6, name:"English practice", base:4, g:"g1"}, {id:7, name:"Reading", base:4, g:"g1"}, {id:8, name:"Writing", base:4, g:"g1"}, {id:9, name:"Speaking", base:4, g:"g1"}, {id:10, name:"Outdoor play", base:5, g:"g1"}, {id:11, name:"Get up on time", base:2, g:"g2"}, {id:12, name:"Brush teeth", base:1, g:"g2"}, {id:13, name:"Brush hair", base:1, g:"g2"}, {id:14, name:"Have water", base:1, g:"g2"}, {id:15, name:"Exercise (AM)", base:3, g:"g2"}, {id:16, name:"Breakfast in 30min", base:5, g:"g2"}, {id:17, name:"Wash face", base:1, g:"g2"}, {id:18, name:"Get dressed", base:2, g:"g2"}, {id:19, name:"Make bed", base:2, g:"g2"}, {id:20, name:"School no late", base:10, g:"g2"}, {id:21, name:"Piano", base:10, g:"g3"}, {id:22, name:"Singing", base:5, g:"g3"}, {id:23, name:"Chinese 5-10min", base:5, g:"g3"}, {id:24, name:"Chess", base:10, g:"g3"}, {id:25, name:"Coding", base:10, g:"g3"}, {id:26, name:"Painting", base:10, g:"g3"}, {id:27, name:"Housework", base:8, g:"g3"}, {id:28, name:"Dinner in 30min", base:5, g:"g4"}, {id:29, name:"Exercise (PM)", base:3, g:"g4"}, {id:30, name:"Clean room/desk", base:5, g:"g4"}, {id:31, name:"Set schoolbag", base:5, g:"g4"}, {id:32, name:"Prepare dress", base:5, g:"g4"}, {id:33, name:"Take shower", base:3, g:"g4"}, {id:34, name:"Brush teeth (PM)", base:1, g:"g4"}, {id:35, name:"Wash clothes/socks", base:5, g:"g4"}, {id:36, name:"Videochat w/Gma", base:5, g:"g4"}, {id:37, name:"Go to bed b/f 8:45", base:10, g:"g4"}];
 
 let db = JSON.parse(localStorage.getItem('kid_v22_final')) || {
@@ -156,9 +159,7 @@ function tab(p) {
 }
 
 function renderCheck() {
-    // 记录当前滚动坐标
     const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
-
     const today = new Date().toLocaleDateString();
     document.getElementById('disp-date').innerText = today;
     const list = document.getElementById('check-list'); list.innerHTML = '';
@@ -172,7 +173,7 @@ function renderCheck() {
         const bgColors = { g1: '#E0F2FE', g2: '#FCE7F3', g3: '#FEF3C7', g4: '#DCFCE7', g_punish: '#FFF1F2' };
         
         gDiv.innerHTML = `<div class="group-header" onclick="toggleCat('${gid}')" style="color:${cat.cb}"><span>${cat.n}</span><span>${cat.open?'▼':'▶'}</span></div>
-            <div class="task-scroll-area" style="display:${cat.open?'block':'none'}">${gTasks.map(t => {
+            <div style="display:${cat.open?'block':'none'}">${gTasks.map(t => {
                 const entry = db.history[today][t.id];
                 const isDone = entry !== undefined;
                 const curVal = isDone ? entry.val : t.actual;
@@ -187,7 +188,7 @@ function renderCheck() {
                         </div>
                         <label class="switch"><input type="checkbox" ${isDone?'checked':''} onchange="toggleT(${t.id},'${today}')"><span class="slider"></span></label>
                     </div>
-                    <input class="note-input" placeholder="备注..." value="${entry ? entry.note : ''}" onchange="updateNote(${t.id},'${today}',this.value)">
+                    <input class="note-input" placeholder="添加备注..." value="${entry ? entry.note : ''}" onchange="updateNote(${t.id},'${today}',this.value)">
                 </div>`;
             }).join('')}</div>`;
         list.appendChild(gDiv);
@@ -195,13 +196,10 @@ function renderCheck() {
     document.getElementById('stat-gain').innerText = dayGain;
     document.getElementById('stat-loss').innerText = dayLoss;
     document.getElementById('day-total').innerText = db.balance;
-
-    // 等待重绘完成，立刻恢复坐标
-    setTimeout(() => {
-        window.scrollTo(0, scrollPos);
-    }, 0);
+    setTimeout(() => { window.scrollTo(0, scrollPos); }, 0);
 }
 
+// 后面所有功能函数保持不变
 function adjT(id, field, delta) {
     const t = db.tasks.find(x => x.id == id);
     const today = new Date().toLocaleDateString();
@@ -214,7 +212,6 @@ function adjT(id, field, delta) {
     }
     save(); renderCheck();
 }
-
 function toggleCat(gid) { db.cats[gid].open = !db.cats[gid].open; save(); renderCheck(); }
 function toggleT(tid, date) {
     const t = db.tasks.find(x => x.id == tid);
@@ -235,7 +232,6 @@ function editT(id, f, val) {
     save(); renderCheck();
 }
 function updateNote(tid, date, txt) { if(db.history[date][tid]) { db.history[date][tid].note = txt; save(); } }
-
 function renderShop() {
     document.getElementById('bal-display').innerText = db.balance;
     const container = document.getElementById('shop-sort-container'); container.innerHTML = '';
@@ -244,7 +240,7 @@ function renderShop() {
         div.innerHTML = `<div class="item-main"><div><input class="name-input" value="${r.name}" onchange="editR(${r.id},'name',this.value)">
             <div class="score-row">标价: <input type="number" class="score-input" value="${r.base}" onchange="editR(${r.id},'base',this.value)"> 
             扣除: <button class="step-btn" onclick="adjR(${r.id},-1)">-</button><input type="number" id="cur-r-${r.id}" class="score-input" value="${r.actual}"><button class="step-btn" onclick="adjR(${r.id},1)">+</button></div></div>
-            <button onclick="buyR(${r.id})" style="background:#ED8936; color:white; border:none; padding:6px 12px; border-radius:8px; font-weight:bold">兑换</button></div>`;
+            <button onclick="buyR(${r.id})" style="background:#ED8936; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold">兑换</button></div>`;
         container.appendChild(div);
     });
 }
@@ -259,7 +255,6 @@ function buyR(id) {
     } else if(db.balance < act) alert('积分不足');
 }
 function editR(id, f, v) { const r = db.rewards.find(x=>x.id==id); if(f==='name') r.name = v; else { r.base = parseInt(v); r.actual = r.base; } save(); renderShop(); }
-
 function renderAdmin() {
     const container = document.getElementById('admin-sort-container'); container.innerHTML = '';
     const sel = document.getElementById('add-item-cat'); sel.innerHTML = '';
@@ -289,7 +284,6 @@ function renderAdmin() {
         </div>`;
         container.appendChild(gCard);
     });
-
     Sortable.create(container, {
         handle: '.cat-handle', animation: 150,
         onEnd: () => {
@@ -311,7 +305,6 @@ function renderAdmin() {
         });
     });
 }
-
 function op(type) {
     if(type==='item') {
         const n = document.getElementById('add-item-name').value;
@@ -328,7 +321,6 @@ function op(type) {
         if(n) { const id='g'+Date.now(); db.cats[id]={n:n, cb:c, open:true, open_admin:true}; db.catOrder.push(id); save(); renderAdmin(); }
     }
 }
-
 function renderHistory() {
     const dates = Object.keys(db.history).sort().slice(-7);
     const scores = dates.map(d => Object.values(db.history[d]).reduce((a,b)=>a+b.val, 0));
@@ -345,7 +337,6 @@ function renderHistory() {
         tbody.innerHTML += `<tr><td>${log.date.split('/').slice(1).join('/')}</td><td style="font-weight:900">${log.name}</td><td class="${log.type}">${log.val>=0?'+':''}${log.val}</td><td>${log.note || ''}</td></tr>`;
     });
 }
-
 function exportData(days) {
     let output = `自律系统报表 (最近${days}天)\n项目\t变动\t时间\n`;
     const rows = document.querySelectorAll("#excel-body tr");
@@ -355,7 +346,6 @@ function exportData(days) {
     });
     const el = document.createElement('textarea'); el.value = output; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('报表数据已复制到剪贴板！');
 }
-
 function backupDB() {
     const action = prompt("1:导出备份 2:导入数据");
     if(action === '1') {
