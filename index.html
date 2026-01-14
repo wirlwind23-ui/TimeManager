@@ -10,13 +10,15 @@
         :root { --bg: #F0F4F8; --card: #FFFFFF; --primary: #6366F1; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 100px; color: #1E293B; }
         .nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); z-index: 2000; }
-        .nav-item { flex: 1; text-align: center; padding: 15px 0; font-size: 12px; color: #94A3B8; border:none; background:none; }
+        .nav-item { flex: 1; text-align: center; padding: 15px 0; font-size: 12px; color: #94A3B8; border:none; background:none; cursor: pointer; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
         .page { display: none; padding: 10px; max-width: 1000px; margin: 0 auto; animation: fadeIn 0.2s; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
         .check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        @media (max-width: 500px) { .check-grid { gap: 8px; } }
+        @media (max-width: 600px) { .check-grid { grid-template-columns: 1fr; } }
+
         .cat-container { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); margin-bottom: 10px; }
         .task-scroll-area { max-height: 550px; overflow-y: auto; }
         .group-header { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; cursor: pointer; font-weight: 900; font-size: 14px; border-bottom: 1px solid #f1f5f9; margin-bottom: 8px; position: sticky; top: 0; background: white; z-index: 10; }
@@ -25,7 +27,6 @@
         .name-input { border: none; background: transparent; font-size: 16px; font-weight: 900; width: 100%; color: #1E293B; outline: none; margin-bottom: 2px; }
         .score-row { display: flex; align-items: center; gap: 8px; font-size: 8px; color: #94A3B8; }
         .score-box { display: flex; align-items: center; gap: 2px; }
-        /* 步进器按钮样式 */
         .step-btn { border: 1px solid #E2E8F0; background: white; border-radius: 3px; width: 16px; height: 16px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748B; font-weight: bold; }
         .score-input { width: 22px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); text-align: center; font-size: 9px; font-weight: bold; color: #475569; padding: 0; margin-left: 1px; border-radius: 2px; }
         .note-input { width: 100%; border: none; background: rgba(255,255,255,0.3); border-radius: 4px; padding: 4px; margin-top: 6px; font-size: 10px; box-sizing: border-box; border: 1px dashed rgba(0,0,0,0.08); }
@@ -35,7 +36,6 @@
         .slider:before { position: absolute; content:""; height:12px; width:12px; left:2px; bottom:2px; background:white; transition:.3s; border-radius:50%; }
         input:checked + .slider { background: #10B981; }
         input:checked + .slider:before { transform: translateX(16px); }
-        .handle { cursor: grab; padding: 2px 6px 2px 0; color: #CBD5E1; }
         .card { background: white; border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         input[type="text"], input[type="number"], select { width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #E2E8F0; border-radius: 6px; font-size: 12px; box-sizing: border-box;}
         .btn { border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; font-size: 12px; }
@@ -44,8 +44,8 @@
         td { padding: 8px; border-bottom: 1px solid #F1F5F9; }
         .gain { color: #10B981; font-weight: bold; }
         .loss { color: #EF4444; font-weight: bold; }
-        .export-area { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
-        .mini-btn { padding: 4px 8px; border-radius: 4px; font-size: 10px; background: #64748B; color: white; border: none; }
+        .mini-btn { padding: 4px 8px; border-radius: 4px; font-size: 10px; background: #64748B; color: white; border: none; cursor: pointer; }
+        .color-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
     </style>
 </head>
 <body>
@@ -60,7 +60,7 @@
             </div>
         </div>
         <div style="text-align: right;">
-            <span style="font-size:10px; color:#94A3B8">可用总余额</span><br>
+            <span style="font-size:10px; color:#94A3B8">可用余额</span><br>
             <span id="day-total" style="font-size:24px; font-weight:900; color:var(--primary)">0</span>
         </div>
     </div>
@@ -71,10 +71,9 @@
     <h2 style="font-size: 16px;">统计明细</h2>
     <div class="card">
         <div style="font-size: 12px; font-weight: 800; margin-bottom: 10px;">💾 数据管理</div>
-        <div class="export-area">
+        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
             <button class="mini-btn" onclick="exportData(7)">导出最近一周</button>
             <button class="mini-btn" onclick="exportData(30)">导出最近一月</button>
-            <button class="mini-btn" onclick="exportData(999)">全部导出</button>
             <button class="mini-btn" style="background:#10B981" onclick="backupDB()">全量备份/导入</button>
         </div>
     </div>
@@ -93,7 +92,7 @@
 </div>
 
 <div id="page-admin" class="page">
-    <h2 style="font-size: 16px;">管理中心</h2>
+    <h2 style="font-size: 16px;">管理中心 (按住 ☰ 或 ⠿ 排序)</h2>
     <div id="admin-sort-container" style="max-width: 600px; margin: auto;"></div>
     <div class="card">
         <div style="font-size:13px; font-weight:800; margin-bottom:8px">📘 增加新任务</div>
@@ -111,7 +110,10 @@
     <div class="card">
         <div style="font-size:13px; font-weight:800; margin-bottom:8px">📦 增加新分类</div>
         <input type="text" id="add-cat-name" placeholder="分类名 (如: 🏃 运动)">
-        <input type="color" id="add-cat-color" value="#6366F1" style="height:30px; padding:2px">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px">
+            <span style="font-size:12px">分类颜色:</span>
+            <input type="color" id="add-cat-color" value="#6366F1" style="height:30px; width:60px; padding:2px; border:1px solid #ddd">
+        </div>
         <button class="btn" style="background: #10B981; width:100%" onclick="op('cat')">创建分类</button>
     </div>
 </div>
@@ -124,7 +126,6 @@
 </nav>
 
 <script>
-// --- 原有任务数据完全保留 ---
 const raw37 = [{id:1, name:"Finish homework", base:5, g:"g1"}, {id:2, name:"Math lesson", base:5, g:"g1"}, {id:3, name:"English lesson", base:5, g:"g1"}, {id:4, name:"English words 5-10", base:3, g:"g1"}, {id:5, name:"Math exercise", base:4, g:"g1"}, {id:6, name:"English practice", base:4, g:"g1"}, {id:7, name:"Reading", base:4, g:"g1"}, {id:8, name:"Writing", base:4, g:"g1"}, {id:9, name:"Speaking", base:4, g:"g1"}, {id:10, name:"Outdoor play", base:5, g:"g1"}, {id:11, name:"Get up on time", base:2, g:"g2"}, {id:12, name:"Brush teeth", base:1, g:"g2"}, {id:13, name:"Brush hair", base:1, g:"g2"}, {id:14, name:"Have water", base:1, g:"g2"}, {id:15, name:"Exercise (AM)", base:3, g:"g2"}, {id:16, name:"Breakfast in 30min", base:5, g:"g2"}, {id:17, name:"Wash face", base:1, g:"g2"}, {id:18, name:"Get dressed", base:2, g:"g2"}, {id:19, name:"Make bed", base:2, g:"g2"}, {id:20, name:"School no late", base:10, g:"g2"}, {id:21, name:"Piano", base:10, g:"g3"}, {id:22, name:"Singing", base:5, g:"g3"}, {id:23, name:"Chinese 5-10min", base:5, g:"g3"}, {id:24, name:"Chess", base:10, g:"g3"}, {id:25, name:"Coding", base:10, g:"g3"}, {id:26, name:"Painting", base:10, g:"g3"}, {id:27, name:"Housework", base:8, g:"g3"}, {id:28, name:"Dinner in 30min", base:5, g:"g4"}, {id:29, name:"Exercise (PM)", base:3, g:"g4"}, {id:30, name:"Clean room/desk", base:5, g:"g4"}, {id:31, name:"Set schoolbag", base:5, g:"g4"}, {id:32, name:"Prepare dress", base:5, g:"g4"}, {id:33, name:"Take shower", base:3, g:"g4"}, {id:34, name:"Brush teeth (PM)", base:1, g:"g4"}, {id:35, name:"Wash clothes/socks", base:5, g:"g4"}, {id:36, name:"Videochat w/Gma", base:5, g:"g4"}, {id:37, name:"Go to bed b/f 8:45", base:10, g:"g4"}];
 
 let db = JSON.parse(localStorage.getItem('kid_v22_final')) || {
@@ -154,13 +155,14 @@ function tab(p) {
     if(p === 'admin') renderAdmin();
 }
 
-// --- 首页渲染 ---
 function renderCheck() {
+    // 记录当前滚动坐标
+    const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+
     const today = new Date().toLocaleDateString();
     document.getElementById('disp-date').innerText = today;
     const list = document.getElementById('check-list'); list.innerHTML = '';
     if(!db.history[today]) db.history[today] = {};
-    
     let dayGain = 0, dayLoss = 0;
     
     db.catOrder.forEach(gid => {
@@ -175,7 +177,6 @@ function renderCheck() {
                 const isDone = entry !== undefined;
                 const curVal = isDone ? entry.val : t.actual;
                 if(isDone) { if(curVal > 0) dayGain += curVal; else dayLoss += Math.abs(curVal); }
-                
                 return `<div class="item-row" style="background:${bgColors[gid] || '#F8FAFC'}">
                     <div class="item-main">
                         <div style="flex:1"><input class="name-input" value="${t.name}" onchange="editT(${t.id},'name',this.value)">
@@ -194,21 +195,22 @@ function renderCheck() {
     document.getElementById('stat-gain').innerText = dayGain;
     document.getElementById('stat-loss').innerText = dayLoss;
     document.getElementById('day-total').innerText = db.balance;
+
+    // 等待重绘完成，立刻恢复坐标
+    setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+    }, 0);
 }
 
-// 加减号逻辑
 function adjT(id, field, delta) {
     const t = db.tasks.find(x => x.id == id);
     const today = new Date().toLocaleDateString();
-    if(field === 'base') {
-        t.base = (parseInt(t.base) || 0) + delta;
-    } else {
+    if(field === 'base') t.base = (parseInt(t.base) || 0) + delta;
+    else {
         if(db.history[today][id]) {
             db.balance = db.balance - db.history[today][id].val + (db.history[today][id].val + delta);
             db.history[today][id].val += delta;
-        } else {
-            t.actual = (parseInt(t.actual) || 0) + delta;
-        }
+        } else t.actual = (parseInt(t.actual) || 0) + delta;
     }
     save(); renderCheck();
 }
@@ -220,67 +222,93 @@ function toggleT(tid, date) {
     else { db.history[date][tid] = { val: t.actual, note: "" }; db.balance += t.actual; }
     save(); renderCheck();
 }
-function editT(id, field, val) {
+function editT(id, f, val) {
     const t = db.tasks.find(x => x.id == id);
-    const num = parseInt(val) || 0;
-    if(field==='name') t.name = val;
-    else if(field==='base') { t.base = num; }
-    else if(field==='actual') {
-        const today = new Date().toLocaleDateString();
-        if(db.history[today][id]) { db.balance = db.balance - db.history[today][id].val + num; db.history[today][id].val = num; }
-        else t.actual = num;
+    const n = parseInt(val) || 0;
+    if(f==='name') t.name = val;
+    else if(f==='base') t.base = n;
+    else if(f==='actual') {
+        const d = new Date().toLocaleDateString();
+        if(db.history[d][id]) { db.balance = db.balance - db.history[d][id].val + n; db.history[d][id].val = n; }
+        else t.actual = n;
     }
     save(); renderCheck();
 }
 function updateNote(tid, date, txt) { if(db.history[date][tid]) { db.history[date][tid].note = txt; save(); } }
 
-// --- 商店渲染 ---
 function renderShop() {
     document.getElementById('bal-display').innerText = db.balance;
     const container = document.getElementById('shop-sort-container'); container.innerHTML = '';
-    db.rewards.forEach((r, idx) => {
-        const div = document.createElement('div'); div.className = 'item-row'; 
-        div.style.background = '#F8FAFC';
-        div.dataset.id = r.id;
-        div.innerHTML = `<div class="item-main"><span class="handle">⠿</span><div style="flex:1">
-            <input class="name-input" value="${r.name}" onchange="editR(${r.id},'name',this.value)">
-            <div class="score-row">
-                <span class="score-box">标价<input type="number" class="score-input" value="${r.base}" onchange="editR(${r.id},'base',this.value)"></span>
-                <span class="score-box">扣除<button class="step-btn" onclick="adjR(${r.id},-1)">-</button><input type="number" id="cur-r-${r.id}" class="score-input" style="color:#ED8936; border-color:#ED8936" value="${r.actual}"><button class="step-btn" onclick="adjR(${r.id},1)">+</button></span>
-            </div></div>
-            <button onclick="buyR(${r.id})" style="background:#ED8936; color:white; border:none; padding:6px 10px; border-radius:8px; font-weight:bold; font-size:11px">兑换</button></div>
-            <input class="note-input" id="note-r-${r.id}" placeholder="备注..."><div style="text-align:right; margin-top:5px;"><span style="color:#CBD5E1; font-size:9px;" onclick="delR(${r.id})">移除</span></div>`;
+    db.rewards.forEach(r => {
+        const div = document.createElement('div'); div.className = 'item-row'; div.style.background = '#F8FAFC';
+        div.innerHTML = `<div class="item-main"><div><input class="name-input" value="${r.name}" onchange="editR(${r.id},'name',this.value)">
+            <div class="score-row">标价: <input type="number" class="score-input" value="${r.base}" onchange="editR(${r.id},'base',this.value)"> 
+            扣除: <button class="step-btn" onclick="adjR(${r.id},-1)">-</button><input type="number" id="cur-r-${r.id}" class="score-input" value="${r.actual}"><button class="step-btn" onclick="adjR(${r.id},1)">+</button></div></div>
+            <button onclick="buyR(${r.id})" style="background:#ED8936; color:white; border:none; padding:6px 12px; border-radius:8px; font-weight:bold">兑换</button></div>`;
         container.appendChild(div);
     });
 }
-
 function adjR(id, d) { const r = db.rewards.find(x=>x.id==id); r.actual += d; save(); renderShop(); }
-
 function buyR(id) {
     const r = db.rewards.find(x => x.id === id);
     const act = parseInt(document.getElementById(`cur-r-${id}`).value) || 0;
-    const note = document.getElementById(`note-r-${id}`).value;
-    if(db.balance >= act && confirm(`确定兑换 ${r.name} 吗？`)) {
-        db.balance -= act; // 兑换减分逻辑
-        db.spending.push({ date: new Date().toLocaleDateString(), name: "🎁 "+r.name, val: -act, note: note || "礼品兑换", type: 'loss' });
+    if(db.balance >= act && confirm(`确定兑换 ${r.name}？`)) {
+        db.balance -= act;
+        db.spending.push({ date: new Date().toLocaleDateString(), name: "🎁 "+r.name, val: -act, note: "兑换", type: 'loss' });
         save(); renderShop();
     } else if(db.balance < act) alert('积分不足');
 }
-
 function editR(id, f, v) { const r = db.rewards.find(x=>x.id==id); if(f==='name') r.name = v; else { r.base = parseInt(v); r.actual = r.base; } save(); renderShop(); }
 
-// --- 管理渲染 ---
 function renderAdmin() {
     const container = document.getElementById('admin-sort-container'); container.innerHTML = '';
     const sel = document.getElementById('add-item-cat'); sel.innerHTML = '';
     db.catOrder.forEach(gid => {
         const cat = db.cats[gid]; sel.innerHTML += `<option value="${gid}">${cat.n}</option>`;
-        const gCard = document.createElement('div'); gCard.className = 'card'; gCard.style.borderLeft = `4px solid ${cat.cb}`;
-        gCard.innerHTML = `<div class="group-header" onclick="db.cats['${gid}'].open_admin=!db.cats['${gid}'].open_admin;save();renderAdmin()"><span class="handle-cat">☰</span><span style="flex:1; margin-left:10px">${cat.n}</span><input type="color" value="${cat.cb}" onchange="db.cats['${gid}'].cb=this.value;save();renderAdmin()" style="width:20px;height:20px;border:none;background:none;padding:0"></div>
-            <div class="admin-task-list" data-gid="${gid}" style="display:${cat.open_admin?'block':'none'}">
-                ${db.tasks.filter(t => t.g === gid).map(t => `<div class="item-row" style="background:#f8fafc; margin-bottom:5px" data-tid="${t.id}"><div class="item-main"><span class="handle-task">⠿</span><span style="flex:1; font-size:12px; margin-left:8px; font-weight:700;">${t.name}</span><span style="color:#EF4444; font-size:10px" onclick="delT(${t.id})">移除</span></div></div>`).join('')}
-            </div>`;
+        const gCard = document.createElement('div'); 
+        gCard.className = 'card admin-cat-card'; 
+        gCard.dataset.id = gid;
+        gCard.style.borderLeft = `4px solid ${cat.cb}`;
+        gCard.innerHTML = `<div class="group-header">
+            <span onclick="db.cats['${gid}'].open_admin=!db.cats['${gid}'].open_admin;save();renderAdmin()">
+                <span class="color-dot" style="background:${cat.cb}"></span>${cat.n} ${cat.open_admin?'▼':'▶'}
+            </span>
+            <div style="display:flex; gap:10px; align-items:center">
+                <input type="color" value="${cat.cb}" onchange="db.cats['${gid}'].cb=this.value;save();renderAdmin()" style="width:20px;height:20px;border:none;background:none;padding:0">
+                <span class="cat-handle" style="cursor:move; color:#CBD5E1">☰</span>
+            </div>
+        </div>
+        <div class="admin-task-list" data-gid="${gid}" style="display:${cat.open_admin?'block':'none'}">
+            ${db.tasks.filter(t => t.g === gid).map(t => `
+                <div class="item-row admin-task-item" style="background:#f8fafc; margin-bottom:5px" data-tid="${t.id}">
+                    <div class="item-main">
+                        <span style="flex:1; font-size:12px; font-weight:700;"><span style="color:#CBD5E1;margin-right:8px">⠿</span>${t.name}</span>
+                        <span style="color:#EF4444; font-size:10px; cursor:pointer" onclick="delT(${t.id})">移除</span>
+                    </div>
+                </div>`).join('')}
+        </div>`;
         container.appendChild(gCard);
+    });
+
+    Sortable.create(container, {
+        handle: '.cat-handle', animation: 150,
+        onEnd: () => {
+            db.catOrder = Array.from(container.querySelectorAll('.admin-cat-card')).map(el => el.dataset.id);
+            save();
+        }
+    });
+    container.querySelectorAll('.admin-task-list').forEach(el => {
+        Sortable.create(el, {
+            animation: 150, handle: '.admin-task-item',
+            onEnd: () => {
+                const gid = el.dataset.gid;
+                const tids = Array.from(el.querySelectorAll('.admin-task-item')).map(row => parseInt(row.dataset.tid));
+                const others = db.tasks.filter(t => t.g !== gid);
+                const current = tids.map(id => db.tasks.find(t => t.id === id));
+                db.tasks = [...others, ...current];
+                save();
+            }
+        });
     });
 }
 
@@ -301,7 +329,6 @@ function op(type) {
     }
 }
 
-// 统计明细渲染
 function renderHistory() {
     const dates = Object.keys(db.history).sort().slice(-7);
     const scores = dates.map(d => Object.values(db.history[d]).reduce((a,b)=>a+b.val, 0));
@@ -311,44 +338,35 @@ function renderHistory() {
     const tbody = document.getElementById('excel-body'); tbody.innerHTML = '';
     let logs = [];
     Object.keys(db.history).forEach(d => { Object.entries(db.history[d]).forEach(([tid, entry]) => {
-        const t = db.tasks.find(x => x.id == tid); logs.push({ date: d, name: t?t.name:'记录', val: entry.val, note: entry.note, type: entry.val>=0?'gain':'loss' });
+        const t = db.tasks.find(x => x.id == tid); logs.push({ date: d, name: t?t.name:'项', val: entry.val, note: entry.note, type: entry.val>=0?'gain':'loss' });
     });});
-    (db.spending || []).forEach(s => logs.push({ ...s }));
+    db.spending.forEach(s => logs.push({...s}));
     logs.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(log => {
-        tbody.innerHTML += `<tr><td>${log.date.split('/').slice(1).join('/')}</td><td style="font-weight:900">${log.name}</td><td class="${log.type==='gain'?'gain':'loss'}">${log.val>=0?'+':''}${log.val}</td><td>${log.note || ''}</td></tr>`;
+        tbody.innerHTML += `<tr><td>${log.date.split('/').slice(1).join('/')}</td><td style="font-weight:900">${log.name}</td><td class="${log.type}">${log.val>=0?'+':''}${log.val}</td><td>${log.note || ''}</td></tr>`;
     });
 }
 
 function exportData(days) {
-    let output = `--- 自律系统报表 (${days}天) ---\n`;
-    const sortedDates = Object.keys(db.history).sort((a,b)=>new Date(b)-new Date(a)).slice(0, days);
-    sortedDates.forEach(d => {
-        let daySum = 0;
-        let dayLogs = [];
-        Object.entries(db.history[d]).forEach(([tid, entry]) => {
-            const t = db.tasks.find(x => x.id == tid);
-            daySum += entry.val;
-            dayLogs.push(` - ${t?t.name:'项'}: ${entry.val}`);
-        });
-        output += `📅 ${d} (共${daySum}分)\n${dayLogs.join('\n')}\n`;
+    let output = `自律系统报表 (最近${days}天)\n项目\t变动\t时间\n`;
+    const rows = document.querySelectorAll("#excel-body tr");
+    rows.forEach(row => {
+        const cols = row.querySelectorAll("td");
+        output += `${cols[1].innerText}\t${cols[2].innerText}\t${cols[0].innerText}\n`;
     });
-    const el = document.createElement('textarea'); el.value = output; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('报表内容已复制到剪贴板！');
+    const el = document.createElement('textarea'); el.value = output; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('报表数据已复制到剪贴板！');
 }
 
 function backupDB() {
-    const action = prompt("【全量备份与导入】\n\n- 查看备份：请输入 1\n- 恢复数据：请输入 2");
+    const action = prompt("1:导出备份 2:导入数据");
     if(action === '1') {
         const str = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
-        const el = document.createElement('textarea'); el.value = str; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('系统完整备份码已复制！');
+        const el = document.createElement('textarea'); el.value = str; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('备份码已复制！');
     } else if(action === '2') {
-        const code = prompt("请粘贴备份码：");
-        if(code) { try { const newDb = JSON.parse(decodeURIComponent(escape(atob(code)))); if(confirm("确定恢复吗？")) { db = newDb; save(); location.reload(); } } catch(e) { alert("备份码无效！"); } }
+        const code = prompt("粘贴备份码:");
+        if(code) { try { db = JSON.parse(decodeURIComponent(escape(atob(code)))); save(); location.reload(); } catch(e){alert("错误!");} }
     }
 }
-
 function delT(id) { if(confirm('移除？')) { db.tasks = db.tasks.filter(t=>t.id!=id); save(); renderAdmin(); } }
-function delR(id) { if(confirm('移除？')) { db.rewards = db.rewards.filter(r=>r.id!=id); save(); renderShop(); } }
-
 renderCheck();
 </script>
 </body>
