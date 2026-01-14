@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>自律成长系统-数据保障版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        :root { --bg: #F0F4F8; --card: #FFFFFF; --primary: #6366F1; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding-bottom: 100px; color: #1E293B; }
+        .nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); z-index: 2000; }
+        .nav-item { flex: 1; text-align: center; padding: 15px 0; font-size: 12px; color: #94A3B8; border:none; background:none; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .page { display: none; padding: 10px; max-width: 1000px; margin: 0 auto; animation: fadeIn 0.2s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        @media (max-width: 500px) { .check-grid { gap: 8px; } }
+        .cat-container { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); margin-bottom: 10px; }
+        .task-scroll-area { max-height: 550px; overflow-y: auto; }
+        .group-header { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; cursor: pointer; font-weight: 900; font-size: 14px; border-bottom: 1px solid #f1f5f9; margin-bottom: 8px; position: sticky; top: 0; background: white; z-index: 10; }
+        .item-row { display: flex; flex-direction: column; padding: 10px; border-radius: 10px; margin-bottom: 6px; border: 1px solid rgba(0,0,0,0.02); }
+        .item-main { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+        .name-input { border: none; background: transparent; font-size: 16px; font-weight: 900; width: 100%; color: #1E293B; outline: none; margin-bottom: 2px; }
+        .score-row { display: flex; align-items: center; gap: 8px; font-size: 8px; color: #94A3B8; }
+        .score-box { display: flex; align-items: center; gap: 2px; }
+        /* 步进器按钮样式 */
+        .step-btn { border: 1px solid #E2E8F0; background: white; border-radius: 3px; width: 16px; height: 16px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748B; font-weight: bold; }
+        .score-input { width: 22px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.5); text-align: center; font-size: 9px; font-weight: bold; color: #475569; padding: 0; margin-left: 1px; border-radius: 2px; }
+        .note-input { width: 100%; border: none; background: rgba(255,255,255,0.3); border-radius: 4px; padding: 4px; margin-top: 6px; font-size: 10px; box-sizing: border-box; border: 1px dashed rgba(0,0,0,0.08); }
+        .switch { position: relative; width: 32px; height: 16px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top:0; left:0; right:0; bottom:0; background:#E2E8F0; transition:.3s; border-radius:16px; }
+        .slider:before { position: absolute; content:""; height:12px; width:12px; left:2px; bottom:2px; background:white; transition:.3s; border-radius:50%; }
+        input:checked + .slider { background: #10B981; }
+        input:checked + .slider:before { transform: translateX(16px); }
+        .handle { cursor: grab; padding: 2px 6px 2px 0; color: #CBD5E1; }
+        .card { background: white; border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; margin-bottom: 8px; border: 1px solid #E2E8F0; border-radius: 6px; font-size: 12px; box-sizing: border-box;}
+        .btn { border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; color: white; cursor: pointer; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        th { background: #F8FAFC; padding: 8px; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #F1F5F9; }
+        .gain { color: #10B981; font-weight: bold; }
+        .loss { color: #EF4444; font-weight: bold; }
+        .export-area { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        .mini-btn { padding: 4px 8px; border-radius: 4px; font-size: 10px; background: #64748B; color: white; border: none; }
+    </style>
+</head>
+<body>
+
+<div id="page-check" class="page active">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 10px; background: white; border-radius: 12px;">
+        <div>
+            <div id="disp-date" style="color: #1E293B; font-weight: bold; font-size: 14px;"></div>
+            <div style="font-size:10px; color:#94A3B8; margin-top:2px;">
+                得: <span id="stat-gain" class="gain">0</span> 
+                支: <span id="stat-loss" class="loss">0</span>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <span style="font-size:10px; color:#94A3B8">可用总余额</span><br>
+            <span id="day-total" style="font-size:24px; font-weight:900; color:var(--primary)">0</span>
+        </div>
+    </div>
+    <div id="check-list" class="check-grid"></div>
+</div>
+
+<div id="page-history" class="page">
+    <h2 style="font-size: 16px;">统计明细</h2>
+    <div class="card">
+        <div style="font-size: 12px; font-weight: 800; margin-bottom: 10px;">💾 数据管理</div>
+        <div class="export-area">
+            <button class="mini-btn" onclick="exportData(7)">导出最近一周</button>
+            <button class="mini-btn" onclick="exportData(30)">导出最近一月</button>
+            <button class="mini-btn" onclick="exportData(999)">全部导出</button>
+            <button class="mini-btn" style="background:#10B981" onclick="backupDB()">全量备份/导入</button>
+        </div>
+    </div>
+    <div class="card" style="max-width: 600px; margin: auto;"><canvas id="historyChart" height="150"></canvas></div>
+    <div class="card" style="padding: 0; overflow: hidden; max-width: 600px; margin: 10px auto;">
+        <table><thead><tr><th>时间</th><th>项目</th><th>变动</th><th>备注</th></tr></thead><tbody id="excel-body"></tbody></table>
+    </div>
+</div>
+
+<div id="page-shop" class="page">
+    <div style="background: linear-gradient(135deg, #4F46E5, #9333EA); color: white; padding: 25px; border-radius: 18px; text-align: center; margin-bottom: 15px; max-width: 500px; margin: auto;">
+        <div style="font-size: 42px; font-weight: 900;" id="bal-display">0</div>
+        <div style="opacity: 0.9; font-size: 11px; margin-top:5px; font-weight:bold">账户积分可用余额</div>
+    </div>
+    <div id="shop-sort-container" style="max-width: 600px; margin: auto;"></div>
+</div>
+
+<div id="page-admin" class="page">
+    <h2 style="font-size: 16px;">管理中心</h2>
+    <div id="admin-sort-container" style="max-width: 600px; margin: auto;"></div>
+    <div class="card">
+        <div style="font-size:13px; font-weight:800; margin-bottom:8px">📘 增加新任务</div>
+        <select id="add-item-cat"></select>
+        <input type="text" id="add-item-name" placeholder="名称">
+        <input type="number" id="add-item-base" placeholder="分值">
+        <button class="btn" style="background: var(--primary); width:100%" onclick="op('item')">确定添加</button>
+    </div>
+    <div class="card">
+        <div style="font-size:13px; font-weight:800; margin-bottom:8px">🎁 增加新奖品</div>
+        <input type="text" id="add-reward-name" placeholder="名称">
+        <input type="number" id="add-reward-price" placeholder="分值">
+        <button class="btn" style="background: #ED8936; width:100%" onclick="op('reward')">确定添加</button>
+    </div>
+    <div class="card">
+        <div style="font-size:13px; font-weight:800; margin-bottom:8px">📦 增加新分类</div>
+        <input type="text" id="add-cat-name" placeholder="分类名 (如: 🏃 运动)">
+        <input type="color" id="add-cat-color" value="#6366F1" style="height:30px; padding:2px">
+        <button class="btn" style="background: #10B981; width:100%" onclick="op('cat')">创建分类</button>
+    </div>
+</div>
+
+<nav class="nav">
+    <button class="nav-item active" onclick="tab('check')">打卡</button>
+    <button class="nav-item" onclick="tab('history')">明细</button>
+    <button class="nav-item" onclick="tab('shop')">商店</button>
+    <button class="nav-item" onclick="tab('admin')">管理</button>
+</nav>
+
+<script>
+// --- 原有任务数据完全保留 ---
+const raw37 = [{id:1, name:"Finish homework", base:5, g:"g1"}, {id:2, name:"Math lesson", base:5, g:"g1"}, {id:3, name:"English lesson", base:5, g:"g1"}, {id:4, name:"English words 5-10", base:3, g:"g1"}, {id:5, name:"Math exercise", base:4, g:"g1"}, {id:6, name:"English practice", base:4, g:"g1"}, {id:7, name:"Reading", base:4, g:"g1"}, {id:8, name:"Writing", base:4, g:"g1"}, {id:9, name:"Speaking", base:4, g:"g1"}, {id:10, name:"Outdoor play", base:5, g:"g1"}, {id:11, name:"Get up on time", base:2, g:"g2"}, {id:12, name:"Brush teeth", base:1, g:"g2"}, {id:13, name:"Brush hair", base:1, g:"g2"}, {id:14, name:"Have water", base:1, g:"g2"}, {id:15, name:"Exercise (AM)", base:3, g:"g2"}, {id:16, name:"Breakfast in 30min", base:5, g:"g2"}, {id:17, name:"Wash face", base:1, g:"g2"}, {id:18, name:"Get dressed", base:2, g:"g2"}, {id:19, name:"Make bed", base:2, g:"g2"}, {id:20, name:"School no late", base:10, g:"g2"}, {id:21, name:"Piano", base:10, g:"g3"}, {id:22, name:"Singing", base:5, g:"g3"}, {id:23, name:"Chinese 5-10min", base:5, g:"g3"}, {id:24, name:"Chess", base:10, g:"g3"}, {id:25, name:"Coding", base:10, g:"g3"}, {id:26, name:"Painting", base:10, g:"g3"}, {id:27, name:"Housework", base:8, g:"g3"}, {id:28, name:"Dinner in 30min", base:5, g:"g4"}, {id:29, name:"Exercise (PM)", base:3, g:"g4"}, {id:30, name:"Clean room/desk", base:5, g:"g4"}, {id:31, name:"Set schoolbag", base:5, g:"g4"}, {id:32, name:"Prepare dress", base:5, g:"g4"}, {id:33, name:"Take shower", base:3, g:"g4"}, {id:34, name:"Brush teeth (PM)", base:1, g:"g4"}, {id:35, name:"Wash clothes/socks", base:5, g:"g4"}, {id:36, name:"Videochat w/Gma", base:5, g:"g4"}, {id:37, name:"Go to bed b/f 8:45", base:10, g:"g4"}];
+
+let db = JSON.parse(localStorage.getItem('kid_v22_final')) || {
+    catOrder: ['g_punish', 'g1', 'g2', 'g3', 'g4'],
+    cats: {
+        g_punish: { n: "⚖️ 奖惩记录", cb: "#E11D48", open: true, open_admin: true },
+        g1: { n: "📘 学业户外", cb: "#2196F3", open: true, open_admin: true },
+        g2: { n: "🌸 晨间习惯", cb: "#E91E63", open: true, open_admin: true },
+        g3: { n: "🎨 兴趣家务", cb: "#F59E0B", open: true, open_admin: true },
+        g4: { n: "🌙 晚间生活", cb: "#10B981", open: true, open_admin: true }
+    },
+    tasks: [{id: 999, name: "额外表现奖励", base: 10, actual: 10, g: "g_punish"}, {id: 998, name: "违规行为扣分", base: -10, actual: -10, g: "g_punish"}, ...raw37.map(t => ({...t, actual: t.base}))],
+    rewards: [{id: 101, name: "15min 屏幕时间", base: 30, actual: 30}],
+    history: {}, spending: [], balance: 0
+};
+
+function save() { localStorage.setItem('kid_v22_final', JSON.stringify(db)); }
+
+function tab(p) {
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+    document.getElementById('page-'+p).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if(event) event.currentTarget.classList.add('active');
+    if(p === 'check') renderCheck();
+    if(p === 'history') renderHistory();
+    if(p === 'shop') renderShop();
+    if(p === 'admin') renderAdmin();
+}
+
+// --- 首页渲染 ---
+function renderCheck() {
+    const today = new Date().toLocaleDateString();
+    document.getElementById('disp-date').innerText = today;
+    const list = document.getElementById('check-list'); list.innerHTML = '';
+    if(!db.history[today]) db.history[today] = {};
+    
+    let dayGain = 0, dayLoss = 0;
+    
+    db.catOrder.forEach(gid => {
+        const cat = db.cats[gid];
+        const gTasks = db.tasks.filter(t => t.g === gid);
+        const gDiv = document.createElement('div'); gDiv.className = 'cat-container';
+        const bgColors = { g1: '#E0F2FE', g2: '#FCE7F3', g3: '#FEF3C7', g4: '#DCFCE7', g_punish: '#FFF1F2' };
+        
+        gDiv.innerHTML = `<div class="group-header" onclick="toggleCat('${gid}')" style="color:${cat.cb}"><span>${cat.n}</span><span>${cat.open?'▼':'▶'}</span></div>
+            <div class="task-scroll-area" style="display:${cat.open?'block':'none'}">${gTasks.map(t => {
+                const entry = db.history[today][t.id];
+                const isDone = entry !== undefined;
+                const curVal = isDone ? entry.val : t.actual;
+                if(isDone) { if(curVal > 0) dayGain += curVal; else dayLoss += Math.abs(curVal); }
+                
+                return `<div class="item-row" style="background:${bgColors[gid] || '#F8FAFC'}">
+                    <div class="item-main">
+                        <div style="flex:1"><input class="name-input" value="${t.name}" onchange="editT(${t.id},'name',this.value)">
+                            <div class="score-row">
+                                <span class="score-box">预<button class="step-btn" onclick="adjT(${t.id},'base',-1)">-</button><input type="number" class="score-input" value="${t.base}" onchange="editT(${t.id},'base',this.value)"><button class="step-btn" onclick="adjT(${t.id},'base',1)">+</button></span>
+                                <span class="score-box">实<button class="step-btn" onclick="adjT(${t.id},'actual',-1)">-</button><input type="number" class="score-input" style="color:${cat.cb}; border-color:${cat.cb}" value="${curVal}" onchange="editT(${t.id},'actual',this.value)"><button class="step-btn" onclick="adjT(${t.id},'actual',1)">+</button></span>
+                            </div>
+                        </div>
+                        <label class="switch"><input type="checkbox" ${isDone?'checked':''} onchange="toggleT(${t.id},'${today}')"><span class="slider"></span></label>
+                    </div>
+                    <input class="note-input" placeholder="备注..." value="${entry ? entry.note : ''}" onchange="updateNote(${t.id},'${today}',this.value)">
+                </div>`;
+            }).join('')}</div>`;
+        list.appendChild(gDiv);
+    });
+    document.getElementById('stat-gain').innerText = dayGain;
+    document.getElementById('stat-loss').innerText = dayLoss;
+    document.getElementById('day-total').innerText = db.balance;
+}
+
+// 加减号逻辑
+function adjT(id, field, delta) {
+    const t = db.tasks.find(x => x.id == id);
+    const today = new Date().toLocaleDateString();
+    if(field === 'base') {
+        t.base = (parseInt(t.base) || 0) + delta;
+    } else {
+        if(db.history[today][id]) {
+            db.balance = db.balance - db.history[today][id].val + (db.history[today][id].val + delta);
+            db.history[today][id].val += delta;
+        } else {
+            t.actual = (parseInt(t.actual) || 0) + delta;
+        }
+    }
+    save(); renderCheck();
+}
+
+function toggleCat(gid) { db.cats[gid].open = !db.cats[gid].open; save(); renderCheck(); }
+function toggleT(tid, date) {
+    const t = db.tasks.find(x => x.id == tid);
+    if(db.history[date][tid]) { db.balance -= db.history[date][tid].val; delete db.history[date][tid]; }
+    else { db.history[date][tid] = { val: t.actual, note: "" }; db.balance += t.actual; }
+    save(); renderCheck();
+}
+function editT(id, field, val) {
+    const t = db.tasks.find(x => x.id == id);
+    const num = parseInt(val) || 0;
+    if(field==='name') t.name = val;
+    else if(field==='base') { t.base = num; }
+    else if(field==='actual') {
+        const today = new Date().toLocaleDateString();
+        if(db.history[today][id]) { db.balance = db.balance - db.history[today][id].val + num; db.history[today][id].val = num; }
+        else t.actual = num;
+    }
+    save(); renderCheck();
+}
+function updateNote(tid, date, txt) { if(db.history[date][tid]) { db.history[date][tid].note = txt; save(); } }
+
+// --- 商店渲染 ---
+function renderShop() {
+    document.getElementById('bal-display').innerText = db.balance;
+    const container = document.getElementById('shop-sort-container'); container.innerHTML = '';
+    db.rewards.forEach((r, idx) => {
+        const div = document.createElement('div'); div.className = 'item-row'; 
+        div.style.background = '#F8FAFC';
+        div.dataset.id = r.id;
+        div.innerHTML = `<div class="item-main"><span class="handle">⠿</span><div style="flex:1">
+            <input class="name-input" value="${r.name}" onchange="editR(${r.id},'name',this.value)">
+            <div class="score-row">
+                <span class="score-box">标价<input type="number" class="score-input" value="${r.base}" onchange="editR(${r.id},'base',this.value)"></span>
+                <span class="score-box">扣除<button class="step-btn" onclick="adjR(${r.id},-1)">-</button><input type="number" id="cur-r-${r.id}" class="score-input" style="color:#ED8936; border-color:#ED8936" value="${r.actual}"><button class="step-btn" onclick="adjR(${r.id},1)">+</button></span>
+            </div></div>
+            <button onclick="buyR(${r.id})" style="background:#ED8936; color:white; border:none; padding:6px 10px; border-radius:8px; font-weight:bold; font-size:11px">兑换</button></div>
+            <input class="note-input" id="note-r-${r.id}" placeholder="备注..."><div style="text-align:right; margin-top:5px;"><span style="color:#CBD5E1; font-size:9px;" onclick="delR(${r.id})">移除</span></div>`;
+        container.appendChild(div);
+    });
+}
+
+function adjR(id, d) { const r = db.rewards.find(x=>x.id==id); r.actual += d; save(); renderShop(); }
+
+function buyR(id) {
+    const r = db.rewards.find(x => x.id === id);
+    const act = parseInt(document.getElementById(`cur-r-${id}`).value) || 0;
+    const note = document.getElementById(`note-r-${id}`).value;
+    if(db.balance >= act && confirm(`确定兑换 ${r.name} 吗？`)) {
+        db.balance -= act; // 兑换减分逻辑
+        db.spending.push({ date: new Date().toLocaleDateString(), name: "🎁 "+r.name, val: -act, note: note || "礼品兑换", type: 'loss' });
+        save(); renderShop();
+    } else if(db.balance < act) alert('积分不足');
+}
+
+function editR(id, f, v) { const r = db.rewards.find(x=>x.id==id); if(f==='name') r.name = v; else { r.base = parseInt(v); r.actual = r.base; } save(); renderShop(); }
+
+// --- 管理渲染 ---
+function renderAdmin() {
+    const container = document.getElementById('admin-sort-container'); container.innerHTML = '';
+    const sel = document.getElementById('add-item-cat'); sel.innerHTML = '';
+    db.catOrder.forEach(gid => {
+        const cat = db.cats[gid]; sel.innerHTML += `<option value="${gid}">${cat.n}</option>`;
+        const gCard = document.createElement('div'); gCard.className = 'card'; gCard.style.borderLeft = `4px solid ${cat.cb}`;
+        gCard.innerHTML = `<div class="group-header" onclick="db.cats['${gid}'].open_admin=!db.cats['${gid}'].open_admin;save();renderAdmin()"><span class="handle-cat">☰</span><span style="flex:1; margin-left:10px">${cat.n}</span><input type="color" value="${cat.cb}" onchange="db.cats['${gid}'].cb=this.value;save();renderAdmin()" style="width:20px;height:20px;border:none;background:none;padding:0"></div>
+            <div class="admin-task-list" data-gid="${gid}" style="display:${cat.open_admin?'block':'none'}">
+                ${db.tasks.filter(t => t.g === gid).map(t => `<div class="item-row" style="background:#f8fafc; margin-bottom:5px" data-tid="${t.id}"><div class="item-main"><span class="handle-task">⠿</span><span style="flex:1; font-size:12px; margin-left:8px; font-weight:700;">${t.name}</span><span style="color:#EF4444; font-size:10px" onclick="delT(${t.id})">移除</span></div></div>`).join('')}
+            </div>`;
+        container.appendChild(gCard);
+    });
+}
+
+function op(type) {
+    if(type==='item') {
+        const n = document.getElementById('add-item-name').value;
+        const b = parseInt(document.getElementById('add-item-base').value) || 0;
+        const g = document.getElementById('add-item-cat').value;
+        if(n) { db.tasks.push({id:Date.now(), name:n, base:b, actual:b, g:g}); save(); renderAdmin(); }
+    } else if(type==='reward') {
+        const n = document.getElementById('add-reward-name').value;
+        const p = parseInt(document.getElementById('add-reward-price').value) || 0;
+        if(n) { db.rewards.push({id:Date.now(), name:n, base:p, actual:p}); save(); tab('shop'); }
+    } else if(type==='cat') {
+        const n = document.getElementById('add-cat-name').value;
+        const c = document.getElementById('add-cat-color').value;
+        if(n) { const id='g'+Date.now(); db.cats[id]={n:n, cb:c, open:true, open_admin:true}; db.catOrder.push(id); save(); renderAdmin(); }
+    }
+}
+
+// 统计明细渲染
+function renderHistory() {
+    const dates = Object.keys(db.history).sort().slice(-7);
+    const scores = dates.map(d => Object.values(db.history[d]).reduce((a,b)=>a+b.val, 0));
+    const ctx = document.getElementById('historyChart').getContext('2d');
+    if(window.ch) window.ch.destroy();
+    window.ch = new Chart(ctx, { type:'line', data:{ labels:dates, datasets:[{label:'每日获得', data:scores, borderColor:'#6366F1', tension:0.4}] }, options:{plugins:{legend:{display:false}}}});
+    const tbody = document.getElementById('excel-body'); tbody.innerHTML = '';
+    let logs = [];
+    Object.keys(db.history).forEach(d => { Object.entries(db.history[d]).forEach(([tid, entry]) => {
+        const t = db.tasks.find(x => x.id == tid); logs.push({ date: d, name: t?t.name:'记录', val: entry.val, note: entry.note, type: entry.val>=0?'gain':'loss' });
+    });});
+    (db.spending || []).forEach(s => logs.push({ ...s }));
+    logs.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(log => {
+        tbody.innerHTML += `<tr><td>${log.date.split('/').slice(1).join('/')}</td><td style="font-weight:900">${log.name}</td><td class="${log.type==='gain'?'gain':'loss'}">${log.val>=0?'+':''}${log.val}</td><td>${log.note || ''}</td></tr>`;
+    });
+}
+
+function exportData(days) {
+    let output = `--- 自律系统报表 (${days}天) ---\n`;
+    const sortedDates = Object.keys(db.history).sort((a,b)=>new Date(b)-new Date(a)).slice(0, days);
+    sortedDates.forEach(d => {
+        let daySum = 0;
+        let dayLogs = [];
+        Object.entries(db.history[d]).forEach(([tid, entry]) => {
+            const t = db.tasks.find(x => x.id == tid);
+            daySum += entry.val;
+            dayLogs.push(` - ${t?t.name:'项'}: ${entry.val}`);
+        });
+        output += `📅 ${d} (共${daySum}分)\n${dayLogs.join('\n')}\n`;
+    });
+    const el = document.createElement('textarea'); el.value = output; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('报表内容已复制到剪贴板！');
+}
+
+function backupDB() {
+    const action = prompt("【全量备份与导入】\n\n- 查看备份：请输入 1\n- 恢复数据：请输入 2");
+    if(action === '1') {
+        const str = btoa(unescape(encodeURIComponent(JSON.stringify(db))));
+        const el = document.createElement('textarea'); el.value = str; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('系统完整备份码已复制！');
+    } else if(action === '2') {
+        const code = prompt("请粘贴备份码：");
+        if(code) { try { const newDb = JSON.parse(decodeURIComponent(escape(atob(code)))); if(confirm("确定恢复吗？")) { db = newDb; save(); location.reload(); } } catch(e) { alert("备份码无效！"); } }
+    }
+}
+
+function delT(id) { if(confirm('移除？')) { db.tasks = db.tasks.filter(t=>t.id!=id); save(); renderAdmin(); } }
+function delR(id) { if(confirm('移除？')) { db.rewards = db.rewards.filter(r=>r.id!=id); save(); renderShop(); } }
+
+renderCheck();
+</script>
+</body>
+</html>
