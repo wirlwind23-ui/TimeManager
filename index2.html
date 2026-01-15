@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>PREP MASTER V9 - Excel 导出版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root { --accent: #f43f5e; }
+        body { background: #f8fafc; color: #1e293b; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+        .planner-grid { display: grid; grid-template-columns: 60px repeat(7, 1fr); gap: 1px; background: #e2e8f0; border-radius: 20px; overflow: hidden; }
+        .grid-header { background: white; padding: 15px 5px; text-align: center; }
+        .grid-time { background: #f8fafc; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: #64748b; border-right: 1px solid #f1f5f9; }
+        .grid-cell { background: white; min-height: 120px; padding: 8px; cursor: pointer; transition: 0.2s; position: relative; display: flex; flex-direction: column; gap: 4px; }
+        .grid-cell:hover { background: #fff1f2; }
+        .grid-cell.active { background: #fff1f2; box-shadow: inset 0 0 0 3px var(--accent); z-index: 10; }
+        .recipe-tag { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: #f1f5f9; color: #475569; border-left: 3px solid #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .recipe-tag.spicy { border-left-color: #f43f5e; background: #fff1f2; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <header class="px-8 py-4 bg-white border-b flex justify-between items-center z-50">
+        <div class="flex items-center gap-10">
+            <h1 class="text-2xl font-black italic text-rose-500 tracking-tighter">PREP MASTER<span class="text-slate-300 ml-1">V9</span></h1>
+            <nav class="flex bg-slate-100 p-1 rounded-2xl gap-2">
+                <button onclick="switchTab('plan')" id="tab-plan" class="px-8 py-2 rounded-xl text-sm font-bold transition-all bg-white text-rose-500 shadow-sm">周计划排餐</button>
+                <button onclick="switchTab('manage')" id="tab-manage" class="px-8 py-2 rounded-xl text-sm font-bold transition-all text-slate-400">食谱管理库</button>
+                <button onclick="switchTab('list')" id="tab-list" class="px-8 py-2 rounded-xl text-sm font-bold transition-all text-slate-400">🛒 采购清单</button>
+            </nav>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="exportToExcel()" class="text-xs font-black bg-emerald-600 text-white px-6 py-2.5 rounded-full italic hover:bg-emerald-700 transition-all shadow-lg flex items-center gap-2">
+                <i class="ri-file-excel-2-fill"></i> 导出 Excel
+            </button>
+            <button onclick="copyCart()" class="text-xs font-black bg-slate-900 text-white px-6 py-2.5 rounded-full italic hover:bg-rose-600 transition-all shadow-lg">复制全文清单</button>
+        </div>
+    </header>
+
+    <main id="page-plan" class="flex-1 flex overflow-hidden">
+        <aside class="w-80 bg-white border-r flex flex-col p-6 shadow-sm">
+            <h3 class="text-sm font-black italic uppercase mb-6 flex justify-between items-center text-slate-400">
+                <span>Weekly Basket</span>
+                <span id="cart-count" class="bg-rose-500 text-white px-2 py-0.5 rounded-full text-[10px] non-italic">0</span>
+            </h3>
+            <div id="side-cart-list" class="flex-1 overflow-y-auto custom-scroll space-y-2 pr-2"></div>
+        </aside>
+
+        <section class="flex-1 overflow-y-auto p-8 space-y-8 custom-scroll">
+            <div class="planner-grid shadow-sm" id="main-grid"></div>
+            <div id="editor-panel" class="hidden space-y-4 animate-in slide-in-from-bottom-5 pb-10">
+                <h2 id="cur-date-label" class="text-base font-black italic text-slate-400 border-l-4 border-rose-500 pl-3 uppercase">Meal Slots</h2>
+                <div id="slot-container" class="grid grid-cols-1 md:grid-cols-5 gap-6"></div>
+            </div>
+        </section>
+    </main>
+
+    <main id="page-manage" class="hidden flex-1 flex p-6 gap-6 overflow-hidden">
+        <div class="w-80 flex flex-col gap-4">
+            <input type="text" id="manage-search" oninput="renderManageList()" placeholder="🔍 搜索菜名、分类..." class="w-full bg-white border-2 border-slate-100 p-4 rounded-2xl text-sm outline-none shadow-sm focus:border-rose-200">
+            <div id="manage-list" class="flex-1 overflow-y-auto space-y-2 custom-scroll pr-2"></div>
+            <button onclick="addNewRecipe()" class="bg-rose-500 text-white py-4 rounded-2xl font-black text-sm shadow-lg shadow-rose-100">+ 创建新食谱</button>
+        </div>
+        <div id="manage-editor" class="flex-1 bg-white rounded-[3rem] border p-10 overflow-y-auto custom-scroll shadow-sm">
+            <div class="h-full flex flex-col items-center justify-center text-slate-300 italic text-sm">选择左侧食谱开始编辑</div>
+        </div>
+        <div class="w-1/3 bg-slate-100 rounded-[3rem] overflow-hidden border">
+            <iframe id="manage-web" class="w-full h-full" src="https://m.xiachufang.com"></iframe>
+        </div>
+    </main>
+
+    <main id="page-list" class="hidden flex-1 p-10 bg-white overflow-y-auto custom-scroll">
+        <div class="max-w-4xl mx-auto" id="full-shopping-list"></div>
+    </main>
+
+    <div id="picker-modal" class="fixed inset-0 z-[200] hidden flex items-center justify-center bg-slate-900/20 backdrop-blur-sm p-4">
+        <div class="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl p-8 flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-6">
+                <h4 class="text-sm font-black uppercase text-slate-400 italic">Select Meal</h4>
+                <button onclick="closePicker()" class="text-slate-300 hover:text-rose-500 text-3xl"><i class="ri-close-circle-fill"></i></button>
+            </div>
+            <input type="text" id="picker-search" oninput="renderPickerList()" placeholder="搜索食谱..." class="bg-slate-50 p-5 rounded-3xl text-sm outline-none mb-6 border-2 border-transparent focus:border-rose-100 transition-all">
+            <div id="picker-list" class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 mb-6 custom-scroll pr-2"></div>
+            <button onclick="confirmNewPick()" class="w-full bg-slate-900 text-white py-4 rounded-2xl text-sm font-black uppercase tracking-widest">创建并添加此新菜名</button>
+        </div>
+    </div>
+
+    <script>
+        const initialDB = [
+            { id: 1, name: "西红柿炒鸡蛋", flavor: "🍋", category: ["健康", "儿童"], ingredients: [{name:"西红柿", weight:"2个"},{name:"鸡蛋", weight:"3个"}], step: "炒熟鸡蛋，西红柿炒出汁混合" },
+            { id: 2, name: "麻辣香锅", flavor: "🔥", category: ["重口"], ingredients: [{name:"虾", weight:"200g"},{name:"莲藕", weight:"1节"}], step: "炸香底料，食材断生后大火翻炒" }
+        ];
+
+        let masterDB = JSON.parse(localStorage.getItem('v15_db')) || initialDB;
+        let schedule = JSON.parse(localStorage.getItem('v15_sch')) || {}; 
+        let cart = JSON.parse(localStorage.getItem('v15_cart')) || [];
+        let curCell = ""; let curSlotIdx = null;
+
+        function getWeekDates() {
+            const now = new Date();
+            const day = now.getDay() || 7;
+            const monday = new Date(now.setDate(now.getDate() - day + 1));
+            return Array.from({length: 7}, (_, i) => {
+                const d = new Date(monday);
+                d.setDate(d.getDate() + i);
+                return { label: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"][i], date: `${d.getMonth()+1}/${d.getDate()}` };
+            });
+        }
+
+        // --- 核心：导出 Excel 逻辑 ---
+        function exportToExcel() {
+            const week = getWeekDates();
+            const times = ["早", "中", "晚", "茶", "宵"];
+            
+            // 构造表格数据
+            const data = [];
+            // 第一行：表头
+            const header = ["时间", ...week.map(d => `${d.label} (${d.date})`)];
+            data.push(header);
+
+            // 填充每一行（早、中、晚等）
+            times.forEach(time => {
+                const row = [time];
+                week.forEach(day => {
+                    const recipes = schedule[`${day.label}-${time}`] || [];
+                    row.push(recipes.map(r => r.name).join(" / "));
+                });
+                data.push(row);
+            });
+
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "周计划");
+            
+            // 导出文件
+            XLSX.writeFile(wb, `我的备餐周计划_${new Date().toLocaleDateString()}.xlsx`);
+        }
+
+        // --- 渲染逻辑 ---
+        function initGrid() {
+            const grid = document.getElementById('main-grid');
+            const week = getWeekDates();
+            const ps = ["早", "中", "晚", "茶", "宵"];
+            let html = `<div class="grid-header"></div>`;
+            week.forEach(d => html += `<div class="grid-header flex flex-col items-center"><span class="text-[10px] font-black text-slate-300 uppercase leading-none">${d.label}</span><span class="text-sm font-black text-slate-800">${d.date}</span></div>`);
+            ps.forEach(p => {
+                html += `<div class="grid-time border-t">${p}</div>`;
+                week.forEach(d => {
+                    const recipes = schedule[`${d.label}-${p}`] || [];
+                    html += `<div class="grid-cell border-t border-l" id="cell-${d.label}-${p}" onclick="selectCell('${d.label}','${p}')">
+                        ${recipes.map(r => `<div class="recipe-tag ${r.flavor.includes('🔥')?'spicy':''}">${r.flavor} ${r.name}</div>`).join('')}
+                        ${recipes.length===0?'<div class="m-auto opacity-10 text-slate-400"><i class="ri-add-circle-line text-2xl"></i></div>':''}
+                    </div>`;
+                });
+            });
+            grid.innerHTML = html;
+            renderCart();
+        }
+
+        function selectCell(d, p) {
+            curCell = `${d}-${p}`;
+            document.querySelectorAll('.grid-cell').forEach(c => c.classList.remove('active'));
+            document.getElementById(`cell-${d}-${p}`).classList.add('active');
+            document.getElementById('cur-date-label').innerText = `${d} · ${p} MEAL SETTING`;
+            renderSlots();
+        }
+
+        function renderSlots() {
+            document.getElementById('editor-panel').classList.remove('hidden');
+            const container = document.getElementById('slot-container');
+            const recipes = schedule[curCell] || [];
+            container.innerHTML = [0,1,2,3,4].map(i => {
+                const r = recipes[i];
+                return `<div class="bg-white rounded-[2.5rem] p-6 min-h-[180px] border-2 border-slate-50 shadow-sm flex flex-col">
+                    ${r ? `<div class="flex justify-between items-start mb-2"><span class="text-[10px] font-black text-rose-500 italic uppercase">Slot 0${i+1}</span><button onclick="clearSlot(${i})" class="text-slate-300 hover:text-rose-500"><i class="ri-close-line text-lg"></i></button></div>
+                    <p class="text-[13px] font-black mb-1">${r.flavor} ${r.name}</p>
+                    <div class="flex flex-wrap gap-1 mb-3">${(r.category || []).map(c => `<span class="text-[8px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-black uppercase">${c}</span>`).join('')}</div>
+                    <div class="flex flex-wrap gap-1.5 mt-auto">
+                        ${(r.ingredients || []).map(ing => {
+                            const inCart = cart.some(c => c.name === ing.name && c.from === r.name);
+                            return `<button onclick="toggleCart('${ing.name}','${ing.weight}','${r.name}')" class="text-[11px] px-3 py-1.5 rounded-xl border-2 font-black transition-all ${inCart?'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-100':'bg-slate-50 border-transparent text-slate-500'}">${ing.name}</button>`;
+                        }).join('')}
+                    </div>` : `<button onclick="openPicker(${i})" class="m-auto text-slate-200 hover:text-rose-500 flex flex-col items-center gap-2"><i class="ri-add-circle-fill text-4xl"></i><span class="text-[10px] font-black uppercase">Add Meal</span></button>`}
+                </div>`;
+            }).join('');
+        }
+
+        // --- 库联动逻辑 ---
+        function addCurrentRecipeToPlan(id) {
+            if(!curCell) { alert("请先在周计划中点击选中一个格子！"); return; }
+            const r = masterDB.find(x => x.id === id);
+            if(!schedule[curCell]) schedule[curCell] = [];
+            if(schedule[curCell].length >= 5) { alert("该时段已满"); return; }
+            schedule[curCell].push(JSON.parse(JSON.stringify(r)));
+            save(); initGrid(); alert("已成功添加！");
+        }
+
+        function renderManageList() {
+            const q = document.getElementById('manage-search').value.toLowerCase();
+            const list = document.getElementById('manage-list');
+            list.innerHTML = masterDB.filter(r => r.name.toLowerCase().includes(q) || (r.category||[]).join().includes(q)).map(r => `
+                <div onclick="editMaster(${r.id})" class="p-4 bg-white border-2 border-slate-50 rounded-2xl hover:border-rose-400 cursor-pointer text-sm font-black shadow-sm transition-all flex justify-between items-center">
+                    <span>${r.flavor} ${r.name}</span><i class="ri-arrow-right-s-line text-slate-200"></i>
+                </div>`).join('');
+        }
+
+        function editMaster(id) {
+            const r = masterDB.find(x => x.id === id);
+            const editor = document.getElementById('manage-editor');
+            editor.innerHTML = `
+                <div class="space-y-8 animate-in fade-in">
+                    <div class="flex justify-between items-center">
+                        <input type="text" value="${r.name}" oninput="updateMaster(${id},'name',this.value)" class="text-4xl font-black italic outline-none w-full text-slate-800">
+                        <button onclick="addCurrentRecipeToPlan(${r.id})" class="bg-slate-900 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-xl hover:bg-rose-500 transition-all whitespace-nowrap">添加到当前计划格</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-8">
+                        <div class="space-y-6">
+                            <div><label class="text-[10px] font-black text-slate-300 uppercase block mb-2 italic">口味/标签</label>
+                            <div class="flex gap-2"><input type="text" value="${r.flavor||''}" oninput="updateMaster(${id},'flavor',this.value)" placeholder="口味(如🔥)" class="w-20 bg-slate-50 p-4 rounded-2xl text-center text-sm outline-none">
+                            <input type="text" value="${(r.category||[]).join(', ')}" oninput="updateMaster(${id},'category',this.value.split(/[，,]/))" placeholder="分类(如儿童,减肥)" class="flex-1 bg-slate-50 p-4 rounded-2xl text-sm outline-none"></div></div>
+                            <div><label class="text-[10px] font-black text-slate-300 uppercase block mb-2 italic">食材用量</label>
+                            <textarea onpaste="smartPaste(event, 'ing', ${id})" class="w-full h-64 bg-slate-50 rounded-[2rem] p-6 text-sm outline-none focus:ring-2 ring-rose-100">${(r.ingredients||[]).map(p=>p.name+p.weight).join(', ')}</textarea></div>
+                        </div>
+                        <div><label class="text-[10px] font-black text-slate-300 uppercase block mb-2 italic">烹饪步骤</label>
+                        <textarea onpaste="smartPaste(event, 'step', ${id})" class="w-full h-full bg-slate-50 rounded-[2rem] p-6 text-sm outline-none focus:ring-2 ring-rose-100 leading-relaxed">${r.step||''}</textarea></div>
+                    </div>
+                    <button onclick="deleteMaster(${id})" class="text-[10px] font-black text-slate-200 hover:text-rose-500 uppercase underline">永久删除</button>
+                </div>`;
+        }
+
+        // --- 其他辅助逻辑 ---
+        function smartPaste(e, field, id) {
+            e.preventDefault(); const text = e.clipboardData.getData('text').trim(); const rIdx = masterDB.findIndex(x => x.id === id);
+            if (field === 'ing') {
+                const parsed = text.split(/[\n,，、\t\s]+/).filter(i => i.trim()).map(item => {
+                    const match = item.match(/^([^\d\s\u4e00-\u4e00]+|[^\d\s\w]+)\s*(.*)$/);
+                    return match ? { name: match[1].trim(), weight: match[2].trim() } : { name: item.trim(), weight: "" };
+                });
+                masterDB[rIdx].ingredients = parsed; e.target.value = parsed.map(p => `${p.name}${p.weight}`).join(', ');
+            } else { masterDB[rIdx].step = text; e.target.value = text; }
+            save();
+        }
+
+        function toggleCart(name, weight, from) {
+            const i = cart.findIndex(c => c.name === name && c.from === from);
+            if(i > -1) cart.splice(i, 1); else cart.push({name, weight, from});
+            save(); renderCart(); renderSlots();
+        }
+
+        function renderCart() {
+            document.getElementById('cart-count').innerText = cart.length;
+            document.getElementById('side-cart-list').innerHTML = cart.map((c, i) => `
+                <div class="group flex justify-between items-center p-4 bg-slate-50 rounded-2xl mb-1 border-2 border-transparent hover:border-rose-100">
+                    <div class="truncate flex-1"><span class="text-[12px] font-black text-slate-800">${c.name}</span><span class="text-[10px] text-slate-400 ml-1">${c.weight}</span><span class="block text-[9px] text-slate-400 font-bold uppercase tracking-tighter">${c.from}</span></div>
+                    <button onclick="removeCartItem(${i})" class="text-slate-200 hover:text-rose-500">✕</button>
+                </div>`).join('');
+        }
+
+        function switchTab(t) {
+            document.getElementById('page-plan').classList.toggle('hidden', t !== 'plan');
+            document.getElementById('page-manage').classList.toggle('hidden', t !== 'manage');
+            document.getElementById('page-list').classList.toggle('hidden', t !== 'list');
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('bg-white', 'text-rose-500', 'shadow-sm'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.add('text-slate-400'));
+            const active = document.getElementById('tab-'+t);
+            active.classList.replace('text-slate-400', 'text-rose-500');
+            active.classList.add('bg-white', 'shadow-sm');
+            if(t==='manage') renderManageList();
+            if(t==='list') renderCartFull();
+        }
+
+        function renderCartFull() {
+            const grouped = cart.reduce((acc, curr) => { if (!acc[curr.from]) acc[curr.from] = []; acc[curr.from].push(curr); return acc; }, {});
+            document.getElementById('full-shopping-list').innerHTML = `<h2 class="text-4xl font-black italic border-b-8 border-slate-900 pb-4 mb-12">WEEKLY SHOPPING LIST</h2>
+                ${Object.keys(grouped).map(from => `<div class="mb-12"><h4 class="text-xl font-black text-rose-500 uppercase mb-4 border-l-8 border-rose-500 pl-4">${from}</h4><div class="grid grid-cols-2 md:grid-cols-4 gap-4">${grouped[from].map(item => `<div class="p-6 bg-slate-50 rounded-[2rem] text-sm font-black border-2 border-slate-100 flex justify-between"><span>${item.name}</span><span class="opacity-40">${item.weight}</span></div>`).join('')}</div></div>`).join('')}`;
+        }
+
+        function openPicker(i) { curSlotIdx = i; document.getElementById('picker-modal').classList.remove('hidden'); renderPickerList(); }
+        function closePicker() { document.getElementById('picker-modal').classList.add('hidden'); }
+        function renderPickerList() {
+            const q = document.getElementById('picker-search').value.toLowerCase();
+            const list = document.getElementById('picker-list');
+            list.innerHTML = masterDB.filter(r => r.name.toLowerCase().includes(q)).map(r => `<div onclick='pickFromLib(${JSON.stringify(r)})' class="p-4 bg-slate-50 rounded-2xl hover:bg-rose-50 text-xs font-black cursor-pointer text-center border-2 border-transparent hover:border-rose-200">${r.flavor} ${r.name}</div>`).join('');
+        }
+        function pickFromLib(r) {
+            if(!schedule[curCell]) schedule[curCell] = [];
+            schedule[curCell][curSlotIdx] = r;
+            save(); initGrid(); renderSlots(); closePicker();
+        }
+        function confirmNewPick() {
+            const name = document.getElementById('picker-search').value; if(!name) return;
+            const newR = { id: Date.now(), name, ingredients: [], step: "", category: [], flavor: "🥗" };
+            masterDB.unshift(newR); if(!schedule[curCell]) schedule[curCell] = [];
+            schedule[curCell][curSlotIdx] = newR; save(); initGrid(); renderSlots(); closePicker();
+        }
+        function save() { localStorage.setItem('v15_db', JSON.stringify(masterDB)); localStorage.setItem('v15_sch', JSON.stringify(schedule)); localStorage.setItem('v15_cart', JSON.stringify(cart)); }
+        function removeCartItem(i) { cart.splice(i,1); save(); renderCart(); renderSlots(); }
+        function clearSlot(i) { schedule[curCell].splice(i, 1); save(); initGrid(); renderSlots(); }
+        function updateMaster(id, f, v) { const i = masterDB.findIndex(x => x.id === id); masterDB[i][f] = v; save(); }
+        function addNewRecipe() { const r = { id: Date.now(), name: "新菜谱", ingredients: [], step: "", category: [], flavor: "🥗" }; masterDB.unshift(r); renderManageList(); editMaster(r.id); }
+        function deleteMaster(id) { if(confirm("删除？")) { masterDB = masterDB.filter(x => x.id !== id); renderManageList(); document.getElementById('manage-editor').innerHTML = ""; save(); } }
+        function copyCart() { navigator.clipboard.writeText(cart.map(c => `- ${c.name} (${c.weight})`).join('\n')).then(() => alert("已复制！")); }
+
+        initGrid();
+    </script>
+</body>
+</html>
