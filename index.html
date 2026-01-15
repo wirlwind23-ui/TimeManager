@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>自律成长系统-排序修复版</title>
+    <title>自律成长系统-分类统计版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
@@ -58,7 +58,8 @@
             <div id="disp-date" style="color: #1E293B; font-weight: bold; font-size: 16px;"></div>
             <div style="font-size:12px; color:#94A3B8; margin-top:4px;">
                 得: <span id="stat-gain" class="gain">0</span> 
-                支: <span id="stat-loss" class="loss">0</span>
+                扣: <span id="stat-fine" style="color: #F97316; font-weight: bold;">0</span>
+                换: <span id="stat-loss" class="loss">0</span>
             </div>
         </div>
         <div style="text-align: right;">
@@ -167,11 +168,21 @@ function renderCheck() {
     document.getElementById('disp-date').innerText = today;
     const list = document.getElementById('check-list'); list.innerHTML = '';
     if(!db.history[today]) db.history[today] = {};
-    let dayGain = 0;
-    Object.values(db.history[today]).forEach(entry => { if(entry.val > 0) dayGain += entry.val; });
-    let dayLoss = 0;
-    Object.values(db.history[today]).forEach(entry => { if(entry.val < 0) dayLoss += Math.abs(entry.val); });
-    db.spending.forEach(s => { if(s.date === today) dayLoss += Math.abs(s.val); });
+    
+    let dayGain = 0;   // 收入
+    let dayFine = 0;   // 惩罚扣除 (任务负分)
+    let dayLoss = 0;   // 兑换支出 (商店购买)
+
+    // 计算当天的打卡明细统计
+    Object.values(db.history[today]).forEach(entry => { 
+        if(entry.val > 0) dayGain += entry.val; 
+        else if(entry.val < 0) dayFine += Math.abs(entry.val); 
+    });
+    
+    // 计算商店支出
+    db.spending.forEach(s => { 
+        if(s.date === today) dayLoss += Math.abs(s.val); 
+    });
 
     db.catOrder.forEach(gid => {
         const cat = db.cats[gid];
@@ -198,7 +209,9 @@ function renderCheck() {
             }).join('')}</div>`;
         list.appendChild(gDiv);
     });
+    
     document.getElementById('stat-gain').innerText = dayGain;
+    document.getElementById('stat-fine').innerText = dayFine;
     document.getElementById('stat-loss').innerText = dayLoss;
     document.getElementById('day-total').innerText = db.balance;
     setTimeout(() => { window.scrollTo(0, scrollPos); }, 0);
@@ -299,10 +312,8 @@ function renderAdmin() {
         container.appendChild(gCard);
     });
     
-    // 绑定分类排序
     Sortable.create(container, { handle: '.cat-handle', animation: 150, onEnd: () => { db.catOrder = Array.from(container.querySelectorAll('.admin-cat-card')).map(el => el.dataset.id); save(); } });
     
-    // 修复：绑定每个分类下的任务排序
     container.querySelectorAll('.admin-task-list').forEach(listEl => {
         Sortable.create(listEl, {
             handle: '.task-handle',
@@ -310,7 +321,6 @@ function renderAdmin() {
             onEnd: () => {
                 const gid = listEl.dataset.gid;
                 const newIds = Array.from(listEl.querySelectorAll('.admin-task-item')).map(el => parseInt(el.dataset.tid));
-                // 重新组合 tasks 数组，保持当前分类任务的新顺序，其他分类任务顺序不变
                 const otherTasks = db.tasks.filter(t => t.g !== gid);
                 const currentCatTasks = newIds.map(id => db.tasks.find(t => t.id === id));
                 db.tasks = [...otherTasks, ...currentCatTasks];
